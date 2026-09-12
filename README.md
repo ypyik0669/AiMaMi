@@ -69,7 +69,7 @@ Tauri 2 · React 18 · TypeScript · Vite 6 · Tailwind CSS · shadcn/ui · Rust
 **Requirements:** Node.js · pnpm · Rust · [Tauri prerequisites](https://v2.tauri.app/start/prerequisites/)
 
 ```bash
-git clone https://github.com/borawong/AiMaMi.git
+git clone https://github.com/ypyik0669/AiMaMi.git
 cd AiMaMi
 pnpm install
 pnpm tauri dev

@@ -350,9 +350,9 @@ function McpEditorDialog({
         name,
         transport,
         enabled: true,
-        command: transport === "stdio" ? command : undefined,
+        command: transport === "stdio" ? command : null,
         args: transport === "stdio" ? args.split(",").map((s) => s.trim()).filter(Boolean) : [],
-        url: transport !== "stdio" ? url : undefined,
+        url: transport !== "stdio" ? url : null,
         headers,
         environment,
       });

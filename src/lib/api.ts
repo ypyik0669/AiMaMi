@@ -1,5 +1,6 @@
 import type {
   CoreEnvelope,
+  CoreSnapshotPayload,
   CleanPayload,
   RebuildRegistryPayload,
   AutoSwitchConfigPayload,
@@ -21,6 +22,7 @@ import type {
   SkillDeleteBackupPayload,
   CustomInstructionPreviewPayload,
   CustomInstructionStatePayload,
+  McpServerSummary,
 } from "@/types";
 import { isTauriRuntime } from "@/lib/tauri-runtime";
 
@@ -34,7 +36,7 @@ async function invoke<T>(cmd: string, args?: Record<string, unknown>): Promise<T
 
 export const api = {
   loadSnapshot: (localOnly = false) =>
-    invoke<CoreEnvelope<Record<string, unknown>>>("load_snapshot", { localOnly }),
+    invoke<CoreEnvelope<CoreSnapshotPayload>>("load_snapshot", { localOnly }),
 
   clean: () =>
     invoke<CoreEnvelope<CleanPayload>>("clean"),
@@ -84,8 +86,17 @@ export const api = {
   loadMcpServers: () =>
     invoke<CoreEnvelope<McpServerListPayload>>("load_mcp_servers"),
 
-  upsertMcpServer: (name: string, config: Record<string, unknown>) =>
-    invoke<CoreEnvelope<McpServerMutationPayload>>("upsert_mcp_server", { name, config }),
+  upsertMcpServer: (server: Omit<McpServerSummary, "sourcePath">) =>
+    invoke<CoreEnvelope<McpServerMutationPayload>>("upsert_mcp_server", {
+      name: server.name,
+      transport: server.transport,
+      enabled: server.enabled,
+      command: server.command,
+      args: server.args,
+      url: server.url,
+      headers: server.headers,
+      environment: server.environment,
+    }),
 
   setMcpServerEnabled: (name: string, enabled: boolean) =>
     invoke<CoreEnvelope<McpServerMutationPayload>>("set_mcp_server_enabled", { name, enabled }),
@@ -114,23 +125,31 @@ export const api = {
   loadCustomInstructionState: () =>
     invoke<CoreEnvelope<CustomInstructionStatePayload>>("load_custom_instruction_state"),
 
-  previewCustomInstructionApply: (templateId: string, content: string) =>
+  previewCustomInstructionApply: (content: string) =>
     invoke<CoreEnvelope<CustomInstructionPreviewPayload>>("preview_custom_instruction_apply", {
-      templateId,
       content,
     }),
 
-  applyCustomInstruction: (templateId: string, content: string) =>
+  applyCustomInstruction: (params: {
+    content: string;
+    templateCode?: string;
+    templateTitle?: string;
+    source: string;
+  }) =>
     invoke<CoreEnvelope<CustomInstructionStatePayload>>("apply_custom_instruction", {
-      templateId,
-      content,
+      content: params.content,
+      templateCode: params.templateCode,
+      templateTitle: params.templateTitle,
+      source: params.source,
     }),
 
   clearCustomInstructionBlock: () =>
     invoke<CoreEnvelope<CustomInstructionStatePayload>>("clear_custom_instruction_block"),
 
-  rollbackCustomInstruction: () =>
-    invoke<CoreEnvelope<CustomInstructionStatePayload>>("rollback_custom_instruction"),
+  rollbackCustomInstruction: (historyId: string) =>
+    invoke<CoreEnvelope<CustomInstructionStatePayload>>("rollback_custom_instruction", {
+      historyId,
+    }),
 
   hasNotch: () =>
     invoke<boolean>("has_notch").catch(() => false),

@@ -29,6 +29,7 @@ export function useRouteTransition<T extends string>(
 
     const timeoutId = window.setTimeout(() => {
       setExitingRoute((current) => (current === previous ? null : current));
+      setMountedRoutes((current) => current.filter((candidate) => candidate !== previous));
     }, durationMs);
 
     return () => window.clearTimeout(timeoutId);

@@ -165,6 +165,16 @@ pub fn run() {
     });
 }
 
+pub fn run_daemon_once_cli() -> Result<(), String> {
+    let repository = Repository::new();
+    let enabled = repository.auto_switch_config().enabled;
+    let payload = repository
+        .build_daemon_payload(enabled)
+        .map_err(|error| error.to_string())?;
+    println!("{}", serde_json::to_string(&payload).map_err(|error| error.to_string())?);
+    Ok(())
+}
+
 fn load_tray_template_icon() -> Result<Image<'static>, String> {
     let reader = ImageReader::new(Cursor::new(include_bytes!("../../assets/women.png")))
         .with_guessed_format()

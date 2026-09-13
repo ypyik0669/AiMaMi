@@ -6,7 +6,6 @@ import { useTheme } from "@/hooks/use-theme";
 import { useAccentColor } from "@/hooks/use-accent-color";
 import { useAutoRefresh } from "@/hooks/use-auto-refresh";
 import { useUpdateCheck } from "@/hooks/use-update-check";
-import { useDeferredReady } from "@/hooks/use-deferred-ready";
 import { useRouteTransition } from "@/hooks/use-route-transition";
 import { PageStage } from "@/components/layout/page-stage";
 import {
@@ -87,19 +86,6 @@ function MainApp() {
   const handleThemeChange = useCallback((nextTheme: "light" | "dark" | "system") => {
     setTheme(nextTheme);
   }, [setTheme]);
-
-  const prewarmRoutes = useDeferredReady(900);
-  useEffect(() => {
-    if (prewarmRoutes) {
-      void Promise.allSettled([
-        import("@/components/mcp/mcp-page"),
-        import("@/components/skills/skills-page"),
-        import("@/components/custom-instructions/custom-instructions-page"),
-        import("@/components/maintenance/maintenance-page"),
-        import("@/components/settings/settings-page"),
-      ]);
-    }
-  }, [prewarmRoutes]);
 
   const renderPage = (targetRoute: Route) => {
     switch (targetRoute) {

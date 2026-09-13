@@ -3,6 +3,12 @@ use crate::core::models::UpdateInstallabilityPayload;
 use std::ffi::OsString;
 use std::path::Path;
 
+pub fn has_updater_config(config: Option<&serde_json::Value>) -> bool {
+    config
+        .and_then(|value| serde_json::from_value::<tauri_plugin_updater::Config>(value.clone()).ok())
+        .is_some_and(|config| !config.pubkey.trim().is_empty() && !config.endpoints.is_empty())
+}
+
 #[cfg(target_os = "windows")]
 pub fn windows_current_install_dir_arg() -> Option<OsString> {
     let exe = std::env::current_exe().ok()?;
@@ -110,6 +116,41 @@ fn has_quarantine_attribute(path: &Path) -> bool {
         .output()
         .map(|output| output.status.success())
         .unwrap_or(false)
+}
+
+#[cfg(test)]
+mod updater_tests {
+    use super::has_updater_config;
+    use serde_json::json;
+
+    #[test]
+    fn source_build_without_updater_config_does_not_enable_plugin() {
+        let config: serde_json::Value =
+            serde_json::from_str(include_str!("../../tauri.conf.json")).unwrap();
+        assert!(!has_updater_config(config["plugins"].get("updater")));
+        assert!(!has_updater_config(Some(&serde_json::Value::Null)));
+    }
+
+    #[test]
+    fn incomplete_updater_config_does_not_enable_plugin() {
+        for value in [
+            json!({}),
+            json!({"pubkey": "", "endpoints": ["https://updates.example.invalid/latest.json"]}),
+            json!({"pubkey": "test-public-key", "endpoints": []}),
+            json!({"pubkey": "test-public-key", "endpoints": ["not a URL"]}),
+        ] {
+            assert!(!has_updater_config(Some(&value)));
+        }
+    }
+
+    #[test]
+    fn configured_release_keeps_updater_enabled() {
+        let value = json!({
+            "pubkey": "test-public-key",
+            "endpoints": ["https://updates.example.invalid/latest.json"]
+        });
+        assert!(has_updater_config(Some(&value)));
+    }
 }
 
 #[cfg(all(test, target_os = "macos"))]

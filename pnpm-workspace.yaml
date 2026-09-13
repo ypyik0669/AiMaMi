@@ -1,5 +1,7 @@
 allowBuilds:
   esbuild: true
 overrides:
+  # Plugins must use the same API minor as the locked Rust tauri crate.
+  '@tauri-apps/api': 2.10.1
   # Keep fresh installs off just-published Rollup platform binaries.
   rollup: 4.63.1

@@ -21,6 +21,9 @@
   },
   "overview": {
     "title": "Dashboard",
+    "loadFailed": "Could not load local status",
+    "healthSessions": "Sessions",
+    "quickAccess": "Quick Access",
     "usageSource": "Usage Source",
     "autoSwitch": "Auto Switch",
     "enabled": "Enabled",
@@ -251,6 +254,8 @@
     "updateAvailable": "Update Available",
     "upToDate": "Already up to date",
     "updateCheckFailed": "Failed to check for updates",
+    "updaterUnconfigured": "Automatic updates are not configured",
+    "updaterUnconfiguredDesc": "This build has no signed update feed. Install a newer build manually.",
     "hotspot": "Notch Overlay",
     "hotspotDesc": "Show real-time 5-hour and weekly quota percentages at the notch area. Click to return to the main window.",
     "hotspotEnabled": "Notch overlay enabled",
@@ -262,6 +267,7 @@
     "quit": "Quit"
   },
   "common": {
+    "retry": "Retry",
     "save": "Save",
     "cancel": "Cancel",
     "confirm": "Confirm",

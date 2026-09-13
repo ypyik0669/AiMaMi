@@ -25,13 +25,18 @@ export function useUpdateCheck() {
   const [error, setError] = useState<string | null>(null);
   const updateRef = useRef<Update | null>(null);
 
-  const checkForUpdate = useCallback(async (): Promise<"available" | "up-to-date" | "error"> => {
+  const checkForUpdate = useCallback(async (): Promise<"available" | "up-to-date" | "unconfigured" | "error"> => {
     if (!isTauriRuntime()) {
       return "up-to-date";
     }
     setStatus("checking");
     setError(null);
     try {
+      const { invoke } = await import("@tauri-apps/api/core");
+      if (!(await invoke<boolean>("updater_configured"))) {
+        setStatus("idle");
+        return "unconfigured";
+      }
       const { check } = await import("@tauri-apps/plugin-updater");
       const update = await check();
       if (update) {

@@ -16,6 +16,11 @@
 
 ## 概述
 
+> **当前源码分支状态：** 当前可见页面为本地状态首页、MCP、Skills、自定义
+> 指令、维护和设置。尚未完成发行版 1.2.6 的账号、智能路由、中转及会话
+> 功能迁移。下方原版功能介绍和配图不代表本分支已全部实现；仍依赖 1.2.6
+> 中转时，请保留原版，并使用本文的隔离测试脚本。
+
 Codex 的账号、会话、MCP、Skills、智能路由与中转配置分散在 `~/.codex` 下的多个文件里。多账号切换、额度耗尽、第三方模型接入与路由维护、会话清理和配置漂移，都会把日常操作变成手改 TOML / JSON / SQLite。
 
 AiMaMi 基于 **Tauri 2 + React + Rust**，把这些高频操作 —— 含智能路由与中转管理 —— 收敛到一个桌面应用里，在本地安全读写 Codex 数据，减少手工改文件带来的风险。
@@ -138,6 +143,41 @@ corepack pnpm tauri build
 以及系统时钟。等待满足策略要求，或提交日志以便复核锁文件。不要删除锁文件、
 设置 `minimumReleaseAge=0`，也不要在依赖安装失败后继续构建。
 
+**Tauri 版本不一致：** JavaScript 包与对应的 Rust crate 必须保持相同的
+主版本和次版本。本分支固定 API 为 2.10.x、dialog 为 2.6.x、updater 为
+2.10.x、process/shell 为 2.3.x。请拉取仓库后重新执行上面的冻结安装，
+不要单独执行 `pnpm update` 或 `cargo update` 来处理此错误。
+`cargo test` 会检查这一版本约束。
+
+**启动即退出，出现 `PluginInitialization("updater", ...)`：** 旧构建在
+缺失 `plugins.updater` 配置时仍注册更新插件，导致启动崩溃。现在只有配置了
+更新地址和签名公钥才加载该插件。未配置时，启动自动检查保持安静，手动检查
+明确提示“未配置自动更新”，不会误报“已是最新版本”；请手动安装新构建。
+发布维护者可在 `plugins.updater` 中配置自己的签名更新源来启用原有更新流程，
+不要编造公钥或借用其他项目的更新源。
+
+**首页空白或图标损坏：** 旧源码的仪表盘路由返回空内容，且缺少
+`load_snapshot` 命令。现在首页显示只读的本地文件状态和功能入口，图标随
+前端打包。查看状态不会同步账号、改写中转配置或修复后台服务。
+这个本地状态页不是发行版 1.2.6 的完整仪表盘，也不表示账号、中转和
+用量分析等功能已完整迁移。不要用此源码构建直接替换仍在承担中转的 1.2.6。
+
+**保留正在使用的版本进行测试：** 如果 AiMaMi 为 Codex 提供中转，
+不要退出它，退出会中断当前连接。在仓库根目录运行：
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\test-desktop.ps1
+```
+
+脚本构建独立标识的调试程序，并使用临时 `CODEX_HOME` 和 WebView2 数据目录，
+不安装覆盖正式版。窗口标题为 `AiMaMi - Isolated Test`；空测试目录中的
+“缺失”状态是预期结果。检查首页、刷新、MCP、技能及设置，然后仅退出
+测试版的托盘进程。脚本输出测试 PID 和日志目录，不自动删除测试数据。
+
+默认生产构建仍只允许一个实例；关闭窗口只是隐藏，并不退出进程。
+只有在不依赖当前中转连接的维护窗口，才从托盘退出正式版并验证安装包。
+以上修复不需要删除账号或 Codex 配置。
+
 ### 性能与资源占用
 
 AiMaMi 使用按需懒加载页面，切换页面后会卸载不再使用的旧页面，启动时不会
@@ -151,10 +191,15 @@ AiMaMi 使用按需懒加载页面，切换页面后会卸载不再使用的旧�
 ### 发布前验证
 
 ```bash
-pnpm build
-cargo test --manifest-path src-tauri/Cargo.toml
-cargo build --manifest-path src-tauri/Cargo.toml --release
+corepack pnpm install --frozen-lockfile
+corepack pnpm build
+cargo test --manifest-path src-tauri/Cargo.toml --locked
+corepack pnpm tauri build -- --locked
 ```
+
+构建成功不代表启动验证通过。先用上面的隔离脚本检查实际窗口、首页状态、
+刷新、MCP、设置和检查更新操作。安装包覆盖升级还需要在测试电脑或不依赖
+当前中转连接的维护窗口单独验证，不能用一次调试运行代替。
 
 ---
 

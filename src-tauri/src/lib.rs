@@ -4,23 +4,23 @@ pub mod platform;
 
 use core::repository::Repository;
 use image::ImageReader;
-use platform::paths::CodexPaths;
 use std::cell::RefCell;
 use std::io::Cursor;
 use std::rc::Rc;
-use std::sync::{Arc, Mutex};
+use std::sync::Mutex;
 use tauri::image::Image;
 use tauri::tray::TrayIconBuilder;
 use tauri::{Manager, RunEvent};
 
 pub fn run() {
-    let shared_paths = Arc::new(CodexPaths::new());
+    let context = tauri::generate_context!();
+    let identifier = context.config().identifier.clone();
 
-    let single_instance_guard = match platform::single_instance::acquire(&shared_paths) {
+    let single_instance_guard = match platform::single_instance::acquire(&identifier) {
         Ok(guard) => guard,
         Err(error) => {
             eprintln!("[AiMaMi] another instance is already running; exiting: {error}");
-            let activated = platform::single_instance::request_existing_instance_activation();
+            let activated = platform::single_instance::request_existing_instance_activation(&identifier);
             if !activated {
                 eprintln!("[AiMaMi] failed to activate the running instance");
             }
@@ -41,12 +41,13 @@ pub fn run() {
     #[cfg(not(target_os = "windows"))]
     let updater_plugin_builder = tauri_plugin_updater::Builder::new();
 
-    let app = tauri::Builder::default()
+    let updater_configured =
+        platform::update::has_updater_config(context.config().plugins.0.get("updater"));
+    let builder = tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_global_shortcut::Builder::new().build())
         .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_shell::init())
-        .plugin(updater_plugin_builder.build())
         .manage(Mutex::new(Repository::new()))
         .setup(|app| {
             if let Some(window) = app.get_webview_window("main") {
@@ -125,7 +126,9 @@ pub fn run() {
             commands::system::restart_codex,
             commands::system::graceful_restart_for_update,
             commands::system::check_update_installability,
+            commands::system::updater_configured,
             commands::system::load_bootstrap_state,
+            commands::system::load_snapshot,
             commands::system::open_path,
             commands::system::get_system_info,
             commands::hotspot::has_notch,
@@ -133,11 +136,20 @@ pub fn run() {
             commands::hotspot::set_hotspot_enabled,
             commands::hotspot::focus_main_window,
             commands::hotspot::hotspot_ready,
-        ])
-        .build(tauri::generate_context!())
+        ]);
+
+    // Source builds have no signed update feed; registering the plugin with
+    // absent configuration would panic before the main window can open.
+    let builder = if updater_configured {
+        builder.plugin(updater_plugin_builder.build())
+    } else {
+        builder
+    };
+    let app = builder
+        .build(context)
         .expect("error while building AiMaMi");
 
-    let activation_watcher_guard = platform::single_instance::start_activation_watcher({
+    let activation_watcher_guard = platform::single_instance::start_activation_watcher(&identifier, {
         let handle = app.handle().clone();
         move || commands::hotspot::force_reveal_main_window(&handle)
     })

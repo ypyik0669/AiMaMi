@@ -35,6 +35,9 @@ import { isMacPlatform } from "@/lib/platform";
 import type { Route } from "@/types/navigation";
 import "./lib/i18n";
 
+const OverviewPage = lazy(() =>
+  import("@/components/overview/overview-page").then((module) => ({ default: module.OverviewPage })),
+);
 const McpPage = lazy(() =>
   import("@/components/mcp/mcp-page").then((module) => ({ default: module.McpPage })),
 );
@@ -90,7 +93,7 @@ function MainApp() {
   const renderPage = (targetRoute: Route) => {
     switch (targetRoute) {
       case "overview":
-        return null;
+        return <OverviewPage onNavigate={setRoute} />;
       case "mcp":
         return <McpPage />;
       case "skills":

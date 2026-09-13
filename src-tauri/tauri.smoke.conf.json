@@ -1,0 +1,19 @@
+{
+  "productName": "AiMaMi Isolated Test",
+  "identifier": "dev.aimami.desktop.smoke",
+  "app": {
+    "windows": [
+      {
+        "label": "main",
+        "title": "AiMaMi - Isolated Test",
+        "width": 1200,
+        "height": 800,
+        "minWidth": 960,
+        "minHeight": 640,
+        "center": true,
+        "resizable": true,
+        "visible": true
+      }
+    ]
+  }
+}

@@ -46,7 +46,7 @@ interface SettingsPageProps {
   setLanguage: (lang: string) => void;
   refreshInterval: RefreshInterval;
   setRefreshInterval: (v: RefreshInterval) => void;
-  onCheckUpdate: () => Promise<"available" | "up-to-date" | "error">;
+  onCheckUpdate: () => Promise<"available" | "up-to-date" | "unconfigured" | "error">;
   onRefreshUsageStatus?: () => Promise<unknown>;
 }
 
@@ -79,7 +79,7 @@ export function SettingsPage({
 
   const statusQuery = useQuery({
     queryKey: RUNTIME_STATE_DISPLAY_QUERY_KEY,
-    queryFn: () => api.loadSnapshot(false),
+    queryFn: () => api.loadSnapshot(),
     staleTime: Infinity,
     refetchOnMount: false,
   });
@@ -209,6 +209,12 @@ export function SettingsPage({
           toast({
             title: t("settings.upToDate"),
             description: t("settings.upToDateDesc"),
+            variant: "default",
+          });
+        } else if (result === "unconfigured") {
+          toast({
+            title: t("settings.updaterUnconfigured"),
+            description: t("settings.updaterUnconfiguredDesc"),
             variant: "default",
           });
         } else if (result === "error") {

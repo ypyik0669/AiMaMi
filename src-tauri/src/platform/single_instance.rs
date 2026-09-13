@@ -3,7 +3,6 @@
 //! This guard is intentionally acquired before Tauri setup starts so a second
 //! AiMaMi process cannot rewrite Codex config.
 
-use crate::platform::paths::CodexPaths;
 use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -56,11 +55,12 @@ mod imp {
         }
     }
 
-    pub fn acquire() -> Result<SingleInstanceGuard, String> {
+    pub fn acquire(identifier: &str) -> Result<SingleInstanceGuard, String> {
         // Local\\ is per interactive user session and avoids the extra
         // privilege requirements that Global\\ can trigger on locked-down
         // Windows machines.
-        let name: Vec<u16> = std::ffi::OsStr::new("Local\\dev.aimami.desktop.single-instance")
+        let mutex_name = format!("Local\\{identifier}.single-instance");
+        let name: Vec<u16> = std::ffi::OsStr::new(&mutex_name)
             .encode_wide()
             .chain(std::iter::once(0))
             .collect();
@@ -98,10 +98,10 @@ mod imp {
         _file: File,
     }
 
-    pub fn acquire() -> Result<SingleInstanceGuard, String> {
+    pub fn acquire(identifier: &str) -> Result<SingleInstanceGuard, String> {
         let dir = dirs::data_local_dir()
             .unwrap_or_else(std::env::temp_dir)
-            .join("dev.aimami.desktop");
+            .join(identifier);
         std::fs::create_dir_all(&dir)
             .map_err(|e| format!("prepare single-instance lock dir failed: {e}"))?;
         let path = dir.join("aimami-single-instance.lock");
@@ -128,21 +128,16 @@ pub use imp::SingleInstanceGuard;
 #[cfg(unix)]
 pub use imp::SingleInstanceGuard;
 
-#[cfg(windows)]
-pub fn acquire(_paths: &CodexPaths) -> Result<SingleInstanceGuard, String> {
-    imp::acquire()
+#[cfg(any(windows, unix))]
+pub fn acquire(identifier: &str) -> Result<SingleInstanceGuard, String> {
+    imp::acquire(identifier)
 }
 
-#[cfg(unix)]
-pub fn acquire(_paths: &CodexPaths) -> Result<SingleInstanceGuard, String> {
-    imp::acquire()
-}
-
-pub fn start_activation_watcher<F>(on_activate: F) -> Result<ActivationWatcherGuard, String>
+pub fn start_activation_watcher<F>(identifier: &str, on_activate: F) -> Result<ActivationWatcherGuard, String>
 where
     F: Fn() + Send + 'static,
 {
-    let request_path = activation_request_path();
+    let request_path = activation_request_path(identifier);
     prepare_activation_dir(&request_path)?;
     let shutdown = Arc::new(AtomicBool::new(false));
     let thread_shutdown = Arc::clone(&shutdown);
@@ -162,14 +157,14 @@ where
     Ok(ActivationWatcherGuard { shutdown })
 }
 
-pub fn request_existing_instance_activation() -> bool {
-    write_activation_request(&activation_request_path()).is_ok()
+pub fn request_existing_instance_activation(identifier: &str) -> bool {
+    write_activation_request(&activation_request_path(identifier)).is_ok()
 }
 
-fn activation_request_path() -> PathBuf {
+fn activation_request_path(identifier: &str) -> PathBuf {
     dirs::data_local_dir()
         .unwrap_or_else(std::env::temp_dir)
-        .join("dev.aimami.desktop")
+        .join(identifier)
         .join("aimami-activate.request")
 }
 
@@ -187,4 +182,35 @@ fn write_activation_request(path: &Path) -> Result<(), String> {
         .map_err(|e| format!("create activation request failed: {e}"))?;
     writeln!(file, "{}", Uuid::new_v4())
         .map_err(|e| format!("write activation request failed: {e}"))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn activation_paths_preserve_production_and_isolate_test_builds() {
+        let base = dirs::data_local_dir().unwrap_or_else(std::env::temp_dir);
+        assert_eq!(
+            activation_request_path("dev.aimami.desktop"),
+            base.join("dev.aimami.desktop").join("aimami-activate.request")
+        );
+        assert_ne!(
+            activation_request_path("dev.aimami.desktop"),
+            activation_request_path("dev.aimami.desktop.smoke")
+        );
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn different_identifiers_can_run_but_duplicates_cannot() {
+        let first = format!("dev.aimami.test.{}", Uuid::new_v4());
+        let second = format!("dev.aimami.test.{}", Uuid::new_v4());
+        let guard = acquire(&first).unwrap();
+        assert!(acquire(&first).is_err());
+        let other_guard = acquire(&second).unwrap();
+        drop(guard);
+        assert!(acquire(&first).is_ok());
+        drop(other_guard);
+    }
 }

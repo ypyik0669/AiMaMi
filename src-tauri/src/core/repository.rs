@@ -169,7 +169,8 @@ impl Repository {
     }
 
     pub fn load_snapshot_local(&self) -> Result<CoreEnvelope<CoreSnapshotPayload>, CoreError> {
-        let state = self.load_local_state_synced()?;
+        // Viewing status must not sync credentials or repair background services.
+        let state = self.load_local_state()?;
         let status = self.make_status_payload(&state);
         Ok(CoreEnvelope::ok_with_warnings(
             CoreSnapshotPayload { status },
@@ -1147,6 +1148,28 @@ mod tests {
         fs::read_dir(dir)
             .map(|entries| entries.count())
             .unwrap_or(0)
+    }
+
+    #[test]
+    fn snapshot_is_read_only_even_with_an_auth_file() {
+        let (repo, codex_home) = make_test_repo("snapshot-read-only");
+        write_test_snapshot(&repo.paths.auth_path);
+        fs::write(&repo.paths.config_path, "# preserve relay configuration\n").unwrap();
+        let auth_before = fs::read(&repo.paths.auth_path).unwrap();
+        let config_before = fs::read(&repo.paths.config_path).unwrap();
+
+        let snapshot = repo.load_snapshot_local().unwrap().data;
+
+        assert!(snapshot.status.paths.auth_exists);
+        assert!(!repo.paths.registry_path.exists());
+        assert!(!repo.paths.settings_path.exists());
+        assert!(!repo.paths.quota_store_path.exists());
+        assert_eq!(count_files(&repo.paths.snapshots_dir), 0);
+        assert_eq!(count_files(&repo.paths.auth_backups_dir), 0);
+        assert_eq!(count_files(&repo.paths.registry_backups_dir), 0);
+        assert_eq!(fs::read(&repo.paths.auth_path).unwrap(), auth_before);
+        assert_eq!(fs::read(&repo.paths.config_path).unwrap(), config_before);
+        fs::remove_dir_all(codex_home).unwrap();
     }
 
     #[test]

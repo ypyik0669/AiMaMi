@@ -20,6 +20,9 @@
     "sidebarLanguageEn": "English"
   },
   "overview": {
+    "loadFailed": "无法读取本地状态",
+    "healthSessions": "会话目录",
+    "quickAccess": "快捷入口",
     "title": "仪表盘",
     "usageSource": "用量来源",
     "autoSwitch": "自动切换",
@@ -251,6 +254,8 @@
     "updateAvailable": "发现新版本",
     "upToDate": "当前已是最新版本",
     "updateCheckFailed": "检查更新失败",
+    "updaterUnconfigured": "未配置自动更新",
+    "updaterUnconfiguredDesc": "此构建未配置签名更新源，请手动安装新版本。",
     "hotspot": "刘海套子",
     "hotspotDesc": "在刘海区域实时显示当前账号的 5 小时和周额度百分比，点击可回到主窗口。",
     "hotspotEnabled": "刘海套子已开启",
@@ -262,6 +267,7 @@
     "quit": "退出"
   },
   "common": {
+    "retry": "重试",
     "save": "保存",
     "cancel": "取消",
     "confirm": "确认",

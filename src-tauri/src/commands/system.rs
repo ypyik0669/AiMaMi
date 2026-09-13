@@ -5,6 +5,22 @@ use std::sync::Mutex;
 use tauri::{AppHandle, Manager, State};
 
 #[tauri::command]
+pub fn updater_configured(app: AppHandle) -> bool {
+    crate::platform::update::has_updater_config(app.config().plugins.0.get("updater"))
+}
+
+#[tauri::command]
+pub async fn load_snapshot(app: AppHandle) -> Result<CoreEnvelope<CoreSnapshotPayload>, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let state = app.state::<Mutex<Repository>>();
+        let repo = state.lock().map_err(|e| e.to_string())?;
+        repo.load_snapshot_local().map_err(|e| e.to_string())
+    })
+    .await
+    .map_err(|e| format!("Blocking command task failed: {e}"))?
+}
+
+#[tauri::command]
 pub fn clean(repo: State<'_, Mutex<Repository>>) -> Result<CoreEnvelope<CleanPayload>, String> {
     let repo = repo.lock().map_err(|e| e.to_string())?;
     repo.clean().map_err(|e| e.to_string())

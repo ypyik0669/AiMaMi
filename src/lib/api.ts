@@ -35,8 +35,8 @@ async function invoke<T>(cmd: string, args?: Record<string, unknown>): Promise<T
 }
 
 export const api = {
-  loadSnapshot: (localOnly = false) =>
-    invoke<CoreEnvelope<CoreSnapshotPayload>>("load_snapshot", { localOnly }),
+  loadSnapshot: () =>
+    invoke<CoreEnvelope<CoreSnapshotPayload>>("load_snapshot"),
 
   clean: () =>
     invoke<CoreEnvelope<CleanPayload>>("clean"),

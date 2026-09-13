@@ -16,6 +16,13 @@
 
 ## Overview
 
+> **Current source branch:** The visible pages are local status, MCP, Skills,
+> custom instructions, maintenance, and settings. Account management, intelligent
+> routing, relay management, and sessions have not been fully migrated from 1.2.6.
+> The original product feature list and screenshots below are not an implementation
+> checklist for this branch. Keep the original app if you depend on its relay,
+> and use the isolated test script documented below.
+
 Codex stores accounts, sessions, MCP entries, Skills, smart-router settings, and relay configuration across multiple files under `~/.codex`. Multi-account switching, quota exhaustion, third-party model setup, session cleanup, and config drift quickly turn day-to-day work into hand-editing TOML, JSON, and SQLite.
 
 AiMaMi is built with **Tauri 2, React, and Rust**. It consolidates these high-frequency workflows — including smart routing and relay management — into a single desktop app that reads and writes Codex data locally, reducing the risk of manual file edits.
@@ -141,6 +148,48 @@ publication time, cutoff, and your system clock. Wait for its required age or
 report the error so the lockfile can be reviewed. Do not delete the lockfile,
 set `minimumReleaseAge=0`, or keep building after installation fails.
 
+**Tauri version mismatch:** JavaScript packages and their Rust crates must
+share a major/minor version. This fork pins API 2.10.x, dialog 2.6.x, updater
+2.10.x, and process/shell 2.3.x on both sides. Pull the repository and rerun the
+frozen install above; do not independently run `pnpm update` or `cargo update`
+to fix this error. `cargo test` checks the version contract.
+
+**App exits immediately with `PluginInitialization("updater", ...)`:** Older
+builds registered the updater even when `plugins.updater` was absent. Source
+builds now start without that plugin unless update endpoints and a signing
+public key are configured. Automatic checks stay quiet; a manual check reports
+that automatic updates are not configured, rather than claiming you are up to
+date. Install newer builds manually. Release maintainers can enable the existing
+updater by supplying their own signed feed in `plugins.updater`; do not invent a
+public key or reuse another project's feed.
+
+**Blank dashboard or broken logo:** The old overview route rendered nothing,
+and the `load_snapshot` command was missing. The dashboard now shows read-only
+local file status and navigation, with a bundled logo. Reading status does not
+sync accounts, rewrite relay configuration, or repair background services.
+This local status page is not the complete 1.2.6 dashboard. It does not establish
+feature parity for accounts, relay routing, or usage analytics. Do not replace
+a working 1.2.6 relay with this source build.
+
+**Test without stopping your working version:** If AiMaMi provides the relay
+used by Codex, exiting it will disconnect that session. Keep it running and use:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\test-desktop.ps1
+```
+
+This builds a debug app with a separate application identifier, temporary
+`CODEX_HOME`, and separate WebView2 data. It does not install over the existing
+app. Its window is titled `AiMaMi - Isolated Test`; missing files in its empty
+test directory are expected. Check the dashboard, refresh, MCP, Skills and
+Settings, then exit only the test app from its tray menu. The script reports
+the test PID and log directory and leaves test data for inspection.
+
+Default production builds still enforce one instance. Closing the window only
+hides it. Exit the production app for installer testing only during a maintenance
+window that does not depend on its relay. No account or Codex configuration
+deletion is needed for these fixes.
+
 ### Resource usage
 
 AiMaMi uses lazy-loaded pages and unloads inactive pages after navigation.
@@ -158,10 +207,16 @@ that can move the workload from GPU to CPU and make low-end systems slower.
 Before publishing a build, run:
 
 ```bash
-pnpm build
-cargo test --manifest-path src-tauri/Cargo.toml
-cargo build --manifest-path src-tauri/Cargo.toml --release
+corepack pnpm install --frozen-lockfile
+corepack pnpm build
+cargo test --manifest-path src-tauri/Cargo.toml --locked
+corepack pnpm tauri build -- --locked
 ```
+
+Build success is not a startup test. Use the isolated script above to check the
+actual window, dashboard status, refresh, MCP, Settings and update action first.
+Installer upgrades need separate testing on a test PC or during a maintenance
+window that does not depend on the relay; a debug run does not prove that path.
 
 ---
 

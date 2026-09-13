@@ -69,9 +69,10 @@ Tauri 2 · React 18 · TypeScript · Vite 6 · Tailwind CSS · shadcn/ui · Rust
 **环境要求：** Node.js · pnpm · Rust · [Tauri 系统依赖](https://v2.tauri.app/start/prerequisites/)
 
 ```bash
-git clone https://github.com/borawong/AiMaMi.git
+git clone https://github.com/ypyik0669/AiMaMi.git
 cd AiMaMi
-pnpm install
+corepack enable
+pnpm install --frozen-lockfile
 pnpm tauri dev
 ```
 
@@ -79,6 +80,43 @@ pnpm tauri dev
 pnpm build                                      # 前端构建检查
 cargo check --manifest-path src-tauri/Cargo.toml  # Rust 检查
 pnpm tauri build                                # 生产构建
+```
+
+### Windows 安装
+
+Windows 版本使用 NSIS 安装包。若系统尚未安装 WebView2 Runtime，请先安装
+Microsoft Edge WebView2 Runtime，然后运行构建生成的安装包。安装包通常位于：
+
+```text
+src-tauri/target/release/bundle/nsis/
+```
+
+在另一台 Windows 电脑上从源码构建：
+
+```powershell
+git clone https://github.com/ypyik0669/AiMaMi.git
+cd AiMaMi
+corepack enable
+pnpm install --frozen-lockfile
+pnpm tauri build
+```
+
+### 性能与资源占用
+
+AiMaMi 使用按需懒加载页面，切换页面后会卸载不再使用的旧页面，启动时不会
+预加载全部功能页面。WebView2 的渲染、GPU、网络和存储进程属于桌面应用的正常
+架构，因此任务管理器中看到多个 WebView2 进程是预期现象。
+
+如果启动时出现卡顿或无响应，请先更新 Microsoft Edge WebView2 Runtime 和显卡
+驱动，并保留 AiMaMi 日志用于排查，再考虑其他措施。不要一开始就禁用 WebView2
+硬件加速；这可能把负载转移到 CPU，反而让低配置电脑更慢。
+
+### 发布前验证
+
+```bash
+pnpm build
+cargo test --manifest-path src-tauri/Cargo.toml
+cargo build --manifest-path src-tauri/Cargo.toml --release
 ```
 
 ---

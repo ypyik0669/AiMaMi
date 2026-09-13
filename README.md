@@ -71,7 +71,8 @@ Tauri 2 · React 18 · TypeScript · Vite 6 · Tailwind CSS · shadcn/ui · Rust
 ```bash
 git clone https://github.com/ypyik0669/AiMaMi.git
 cd AiMaMi
-pnpm install
+corepack enable
+pnpm install --frozen-lockfile
 pnpm tauri dev
 ```
 
@@ -79,6 +80,47 @@ pnpm tauri dev
 pnpm build                                        # Frontend build check
 cargo check --manifest-path src-tauri/Cargo.toml  # Rust check
 pnpm tauri build                                  # Production build
+```
+
+### Windows installation
+
+The Windows release is packaged as an NSIS installer. Install the WebView2
+Runtime if it is not already present, then run the generated installer from:
+
+```text
+src-tauri/target/release/bundle/nsis/
+```
+
+For a clean build on another Windows computer:
+
+```powershell
+git clone https://github.com/ypyik0669/AiMaMi.git
+cd AiMaMi
+corepack enable
+pnpm install --frozen-lockfile
+pnpm tauri build
+```
+
+### Resource usage
+
+AiMaMi uses lazy-loaded pages and unloads inactive pages after navigation.
+It does not prewarm every feature page at startup. WebView2 still creates
+separate renderer, GPU, network, and storage processes as part of its normal
+desktop-app architecture, so the Task Manager process count is expected.
+
+If the app becomes unresponsive during startup, update Microsoft Edge WebView2
+and the graphics driver, then collect the AiMaMi log before deleting any local
+Codex data. Do not disable WebView2 hardware acceleration as a first step:
+that can move the workload from GPU to CPU and make low-end systems slower.
+
+### Verification
+
+Before publishing a build, run:
+
+```bash
+pnpm build
+cargo test --manifest-path src-tauri/Cargo.toml
+cargo build --manifest-path src-tauri/Cargo.toml --release
 ```
 
 ---

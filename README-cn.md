@@ -66,15 +66,23 @@ Tauri 2 · React 18 · TypeScript · Vite 6 · Tailwind CSS · shadcn/ui · Rust
 
 ## 快速开始
 
-**环境要求：** Node.js · pnpm · Rust · [Tauri 系统依赖](https://v2.tauri.app/start/prerequisites/)
+**环境要求：** Node.js 24.12+（推荐 24.x；其他支持的版本见 `package.json`
+的 `engines`）· pnpm 11.7.0 · Rust stable ·
+[Tauri 系统依赖](https://v2.tauri.app/start/prerequisites/)。
+若 Node 安装未包含 Corepack，请先单独安装 Corepack。
 
 ```bash
 git clone https://github.com/ypyik0669/AiMaMi.git
 cd AiMaMi
 corepack enable
+corepack pnpm --version
 pnpm install --frozen-lockfile
 pnpm tauri dev
 ```
+
+仓库通过 `packageManager` 固定使用 **pnpm 11.7.0**。如果 `pnpm --version`
+显示其他版本，说明 PATH 中的另一份安装可能优先被调用；请将后续命令中的
+`pnpm` 替换为 `corepack pnpm`。
 
 ```bash
 pnpm build                                      # 前端构建检查
@@ -93,13 +101,42 @@ src-tauri/target/release/bundle/nsis/
 
 在另一台 Windows 电脑上从源码构建：
 
+请先安装 Visual Studio Build Tools，勾选 **使用 C++ 的桌面开发** 和
+Windows SDK，并安装 Rust MSVC 工具链。安装完成后重新打开 PowerShell。
+源码编译本身会占用较多 CPU 和内存；低配置笔记本更适合直接安装开发电脑
+生成并传过去的 NSIS 安装包，目标电脑需要 WebView2，无需 Node 或 Rust。
+
 ```powershell
 git clone https://github.com/ypyik0669/AiMaMi.git
 cd AiMaMi
 corepack enable
-pnpm install --frozen-lockfile
-pnpm tauri build
+corepack pnpm --version  # 应为 11.7.0
+corepack pnpm install --frozen-lockfile
+if ($LASTEXITCODE -ne 0) { throw "Dependency installation failed; stop here." }
+corepack pnpm tauri build
 ```
+
+### 安装报错排查
+
+`ERR_PNPM_MINIMUM_RELEASE_AGE_VIOLATION` 表示锁定的依赖发布时间尚未达到
+当前 pnpm 策略要求。此次报错涉及 2026 年 9 月 12 日发布的 Rollup 4.63.2 及其平台包；
+仓库已在 `pnpm-workspace.yaml` 和锁文件中固定为 4.63.1，没有关闭发布时间
+或完整性检查。
+
+已有源码目录请先更新，再重试：
+
+```powershell
+git pull --ff-only
+if ($LASTEXITCODE -ne 0) { throw "Update failed; resolve local changes first." }
+corepack pnpm --version
+corepack pnpm install --frozen-lockfile
+if ($LASTEXITCODE -ne 0) { throw "Dependency installation failed; stop here." }
+corepack pnpm tauri build
+```
+
+如果更严格的本机策略仍拦截依赖，请核对报错中的包版本、发布时间、截止时间
+以及系统时钟。等待满足策略要求，或提交日志以便复核锁文件。不要删除锁文件、
+设置 `minimumReleaseAge=0`，也不要在依赖安装失败后继续构建。
 
 ### 性能与资源占用
 

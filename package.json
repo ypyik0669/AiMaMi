@@ -3,6 +3,10 @@
   "private": false,
   "version": "1.0.0",
   "type": "module",
+  "packageManager": "pnpm@11.7.0",
+  "engines": {
+    "node": "^22.20.0 || ^24.12.0 || >=25.0.0"
+  },
   "scripts": {
     "dev": "vite",
     "dev:web": "vite --open",

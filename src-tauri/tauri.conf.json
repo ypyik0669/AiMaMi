@@ -4,8 +4,8 @@
   "version": "1.0.0",
   "identifier": "dev.aimami.desktop",
   "build": {
-    "beforeBuildCommand": "pnpm build",
-    "beforeDevCommand": "pnpm dev",
+    "beforeBuildCommand": "corepack pnpm build",
+    "beforeDevCommand": "corepack pnpm dev",
     "devUrl": "http://localhost:3123",
     "frontendDist": "../dist"
   },

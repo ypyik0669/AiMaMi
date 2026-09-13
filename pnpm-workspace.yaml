@@ -1,2 +1,5 @@
 allowBuilds:
   esbuild: true
+overrides:
+  # Keep fresh installs off just-published Rollup platform binaries.
+  rollup: 4.63.1

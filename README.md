@@ -66,15 +66,23 @@ Tauri 2 · React 18 · TypeScript · Vite 6 · Tailwind CSS · shadcn/ui · Rust
 
 ## Quick Start
 
-**Requirements:** Node.js · pnpm · Rust · [Tauri prerequisites](https://v2.tauri.app/start/prerequisites/)
+**Requirements:** Node.js 24.12+ (24.x recommended; see `engines` in
+`package.json` for other supported versions) · pnpm 11.7.0 · Rust stable ·
+[Tauri prerequisites](https://v2.tauri.app/start/prerequisites/).
+Install Corepack separately if your Node installation does not provide it.
 
 ```bash
 git clone https://github.com/ypyik0669/AiMaMi.git
 cd AiMaMi
 corepack enable
+corepack pnpm --version
 pnpm install --frozen-lockfile
 pnpm tauri dev
 ```
+
+`packageManager` pins pnpm to **11.7.0**. If `pnpm --version` reports a
+different version because another installation takes precedence on PATH,
+use `corepack pnpm` instead of `pnpm` in the commands below.
 
 ```bash
 pnpm build                                        # Frontend build check
@@ -93,13 +101,45 @@ src-tauri/target/release/bundle/nsis/
 
 For a clean build on another Windows computer:
 
+Install Visual Studio Build Tools with **Desktop development with C++** and
+a Windows SDK, plus the Rust MSVC toolchain. Reopen PowerShell after installing
+the prerequisites. Building from source is CPU/RAM intensive; to avoid compiling
+on a low-end laptop, build the installer on your development PC and transfer only
+the resulting NSIS installer. The destination PC needs WebView2, not Node or Rust.
+
 ```powershell
 git clone https://github.com/ypyik0669/AiMaMi.git
 cd AiMaMi
 corepack enable
-pnpm install --frozen-lockfile
-pnpm tauri build
+corepack pnpm --version  # Expected: 11.7.0
+corepack pnpm install --frozen-lockfile
+if ($LASTEXITCODE -ne 0) { throw "Dependency installation failed; stop here." }
+corepack pnpm tauri build
 ```
+
+### Installation troubleshooting
+
+`ERR_PNPM_MINIMUM_RELEASE_AGE_VIOLATION` means a locked dependency is newer
+than the active pnpm policy permits. The reported failure affected Rollup
+4.63.2 (published September 12, 2026) and its platform packages. This repository pins Rollup
+to 4.63.1 in `pnpm-workspace.yaml` and the lockfile; it does not disable the
+release-age or integrity checks.
+
+For an existing checkout, update it before retrying:
+
+```powershell
+git pull --ff-only
+if ($LASTEXITCODE -ne 0) { throw "Update failed; resolve local changes first." }
+corepack pnpm --version
+corepack pnpm install --frozen-lockfile
+if ($LASTEXITCODE -ne 0) { throw "Dependency installation failed; stop here." }
+corepack pnpm tauri build
+```
+
+If a stricter local policy still rejects a package, check the named version,
+publication time, cutoff, and your system clock. Wait for its required age or
+report the error so the lockfile can be reviewed. Do not delete the lockfile,
+set `minimumReleaseAge=0`, or keep building after installation fails.
 
 ### Resource usage
 
